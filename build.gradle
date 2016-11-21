@@ -1,0 +1,114 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.akhikhl.gretty:gretty:1.4.0'
+    }
+}
+
+apply plugin: 'base'
+apply plugin: 'org.akhikhl.gretty'
+
+repositories {
+    mavenCentral()
+    maven { url "http://www.soapui.org/repository/maven2" }
+}
+
+
+configurations {
+    soapui {
+        resolutionStrategy {
+            dependencySubstitution {
+                substitute module('javax.jms:jms') with module('javax.jms:jms-api:1.1-rev-1')
+            }
+        }
+    }
+
+    war
+}
+
+
+
+dependencies {
+    soapui(group: 'com.smartbear.soapui', name: 'soapui', version: '5.2.1') {
+        exclude(module: 'jtidy')
+        exclude(module: 'cajo')
+    }
+
+}
+
+task copyDependencies {
+
+    doLast() {
+        file("$buildDir/soapui").mkdirs()
+
+        ext.homeDir = "$buildDir/soapui"
+
+        copy {
+            from configurations.soapui
+            into "$buildDir/lib"
+        }
+
+        copy {
+            from configurations.soapui
+            include "soapui-*.jar"
+            into "$buildDir/soapui"
+        }
+    }
+
+
+}
+
+task createWar(type: JavaExec, group: 'build') {
+    dependsOn copyDependencies
+
+    inputs.file file('SoapUI-War-soapui-project.xml')
+
+    systemProperties = ["soapui.home": "$buildDir/soapui"]
+
+    classpath = configurations.soapui
+
+    main = 'com.eviware.soapui.tools.SoapUIMockAsWarGenerator'
+
+    args "-d", "$buildDir/war", "-f", "$buildDir/soapuimocks.war", "-w", "true", "-s", "none.xml", file('SoapUI-War-soapui-project.xml')
+
+    ext.destFile = file("$buildDir/soapuimocks.war")
+
+    outputs.file file("$buildDir/soapuimocks.war")
+
+}
+
+build.dependsOn 'createWar'
+
+artifacts {
+
+    war(createWar.destFile) {
+        name 'soaui-mock'
+        type 'war'
+        builtBy createWar
+    }
+}
+
+gretty {
+    servletContainer = 'jetty9'
+
+    httpEnabled = true
+    httpPort = 8081
+    jvmArgs { '-ea' }
+
+    loggingLevel = 'INFO'
+}
+
+farm {
+    webapp createWar.destFile, contextPath: "/"
+}
+
+project.afterEvaluate {
+    tasks.farmRun.dependsOn createWar
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.1'
+}
