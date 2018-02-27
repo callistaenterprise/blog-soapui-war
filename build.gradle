@@ -1,10 +1,9 @@
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
     }
     dependencies {
-        classpath 'org.akhikhl.gretty:gretty:1.4.0'
+        classpath 'org.akhikhl.gretty:gretty:2.0.0'
     }
 }
 
@@ -13,7 +12,7 @@ apply plugin: 'org.akhikhl.gretty'
 
 repositories {
     mavenCentral()
-    maven { url "http://www.soapui.org/repository/maven2" }
+    maven { url "http://smartbearsoftware.com/repository/maven2/" }
 }
 
 
@@ -32,9 +31,9 @@ configurations {
 
 
 dependencies {
-    soapui(group: 'com.smartbear.soapui', name: 'soapui', version: '5.2.1') {
-        exclude(module: 'jtidy')
-        exclude(module: 'cajo')
+    soapui(group: 'com.smartbear.soapui', name: 'soapui', version: '5.3.0') {
+//        exclude(module: 'jtidy')
+//        exclude(module: 'cajo')
     }
 
 }
@@ -66,7 +65,8 @@ task createWar(type: JavaExec, group: 'build') {
 
     inputs.file file('SoapUI-War-soapui-project.xml')
 
-    systemProperties = ["soapui.home": "$buildDir/soapui"]
+    systemProperties = ["soapui.home": "$buildDir/soapui",
+                        "user.home": projectDir]
 
     classpath = configurations.soapui
 
@@ -76,7 +76,24 @@ task createWar(type: JavaExec, group: 'build') {
 
     ext.destFile = file("$buildDir/soapuimocks.war")
 
-    outputs.file file("$buildDir/soapuimocks.war")
+    outputs.file destFile
+
+}
+
+task runSoapUi(type: JavaExec, group: 'run') {
+    dependsOn copyDependencies
+
+    inputs.file file('SoapUI-War-soapui-project.xml')
+
+    systemProperties = ["soapui.home": "$buildDir/soapui",
+                        "user.home"  : projectDir]
+
+    classpath = configurations.soapui
+
+    main = 'com.eviware.soapui.SoapUI'
+
+    args file('SoapUI-War-soapui-project.xml')
+    //args '--help'
 
 }
 
@@ -99,6 +116,9 @@ gretty {
     jvmArgs { '-ea' }
 
     loggingLevel = 'INFO'
+
+    systemProperties = ["soapui.home": "$buildDir/soapui",
+                        "user.home"  : projectDir]
 }
 
 farm {
@@ -107,8 +127,4 @@ farm {
 
 project.afterEvaluate {
     tasks.farmRun.dependsOn createWar
-}
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.1'
 }
