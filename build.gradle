@@ -92,9 +92,7 @@ task runSoapUi(type: JavaExec, group: 'run') {
 
     main = 'com.eviware.soapui.SoapUI'
 
-    args file('SoapUI-War-soapui-project.xml')
-    //args '--help'
-
+//    args file('SoapUI-War-soapui-project.xml')
 }
 
 build.dependsOn 'createWar'
