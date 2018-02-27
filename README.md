@@ -17,4 +17,3 @@ The mock-service should now be available at http://localhost:8081/
 ```
 ./gradlew runSoapUI
 ```
-During the first launch, you will have to import the project file to the newly created workspace. Do not place the workspace file under source control since it will contain absolute paths to the project file.
