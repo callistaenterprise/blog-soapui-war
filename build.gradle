@@ -38,26 +38,22 @@ dependencies {
 
 }
 
-task copyDependencies {
+task copyDependencies(type: Copy) {
 
-    doLast() {
-        file("$buildDir/soapui").mkdirs()
-
-        ext.homeDir = "$buildDir/soapui"
-
-        copy {
-            from configurations.soapui
-            into "$buildDir/lib"
-        }
-
-        copy {
-            from configurations.soapui
-            include "soapui-*.jar"
-            into "$buildDir/soapui"
-        }
+    def filesToCopy = copySpec {
+        from configurations.soapui
     }
 
+    into buildDir
 
+    into("lib") {
+        exclude "soapui-*.jar"
+        with filesToCopy
+    }
+    into("soapui") {
+        include "soapui-*.jar"
+        with filesToCopy
+    }
 }
 
 task createWar(type: JavaExec, group: 'build') {
@@ -66,7 +62,7 @@ task createWar(type: JavaExec, group: 'build') {
     inputs.file file('SoapUI-War-soapui-project.xml')
 
     systemProperties = ["soapui.home": "$buildDir/soapui",
-                        "user.home": projectDir]
+                        "user.home"  : projectDir]
 
     classpath = configurations.soapui
 
@@ -77,7 +73,6 @@ task createWar(type: JavaExec, group: 'build') {
     ext.destFile = file("$buildDir/soapuimocks.war")
 
     outputs.file destFile
-
 }
 
 task runSoapUi(type: JavaExec, group: 'run') {
